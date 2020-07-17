@@ -75,7 +75,7 @@ class Data extends Backend
                     	->field('id,airesult,extparam,mimetype')
                     	->select();
                 	$params['file_id'] = $attachmentList[0]->id;
-                	$params['data_status'] = 1;//上传成功
+                //	$params['data_status'] = 1;//上传成功
                     $result = $row->allowField(true)->save($params);
                     
                     if(empty($attachmentList[0]->airesult))
