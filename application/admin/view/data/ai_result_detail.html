@@ -1,0 +1,26 @@
+<table class="table table-striped">
+    <thead>
+        <tr>
+            <th>{:__('Label')}</th>
+            <th>{:__('Rate')}</th>
+            <th>{:__('Scene')}</th>
+            <th>{:__('Suggestion')}</th>
+        </tr>
+    </thead>
+    <tbody>
+        {volist name="row" id="vo"  }
+            <tr>
+                <td><span {$vo['style']}>{:__($vo['label'])}</span></td>
+                <td>{$vo['rate']}%</td>
+                <td>{:__($vo['scene'])}</td>
+                <td><span {$vo['style']}>{:__($vo['suggestion'])}</span></td>
+            </tr>
+        {/volist}
+    </tbody>
+</table>
+<div class="hide layer-footer">
+    <label class="control-label col-xs-12 col-sm-2"></label>
+    <div class="col-xs-12 col-sm-8">
+        <button type="reset" class="btn btn-primary btn-embossed btn-close" onclick="Layer.closeAll();">{:__('Close')}</button>
+    </div>
+</div>

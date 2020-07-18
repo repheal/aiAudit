@@ -59,8 +59,7 @@ class Data extends Model
     {
         return ['1' => __('Ar_status 1'), '2' => __('Ar_status 2')];
     }
-
-
+    
     public function getTypeTextAttr($value, $data)
     {
         $value = $value ? $value : (isset($data['type']) ? $data['type'] : '');
@@ -99,8 +98,5 @@ class Data extends Model
         $list = $this->getArStatusList();
         return isset($list[$value]) ? $list[$value] : '';
     }
-
-
-
 
 }

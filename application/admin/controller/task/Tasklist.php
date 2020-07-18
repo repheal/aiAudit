@@ -50,7 +50,9 @@ class Tasklist extends Backend
             if ($this->request->request('keyField')) {
                 return $this->selectpage();
             }
+          
             list($where, $sort, $order, $offset, $limit) = $this->buildparams();
+              file_put_contents(CACHE_PATH . 'sss1',var_export($where,1));
             $total = $this->model
                 ->where($where)
                 ->order($sort, $order)

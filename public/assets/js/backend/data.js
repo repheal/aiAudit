@@ -36,9 +36,15 @@ define(['jquery', 'bootstrap', 'backend', 'table', 'form'], function ($, undefin
                         {field: 'updatetime', title: __('Updatetime'), operate:'RANGE', addclass:'datetimerange', formatter: Table.api.formatter.datetime},
                         {field: 'source', title: __('Source'), searchList: {"ar":__('Source ar'),"ai":__('Source ai')}, formatter: Table.api.formatter.normal},
                         {field: 'data_status', title: __('Data_status'), searchList: {"0":__('Data_status 0'),"1":__('Data_status 1'),"2":__('Data_status 2'),"3":__('Data_status 3'),"4":__('Data_status 4'),"5":__('Data_status 5')}, formatter: Table.api.formatter.status},
-                        {field: 'ai_status', title: __('Ai_status'), searchList: {"0":__('Ai_status 0'),"1":__('Ai_status 1'),"2":__('Ai_status 2'),"3":__('Ai_status 3'),"4":__('Ai_status 4')}, formatter: Table.api.formatter.status},
+                        {field: 'ai_status', title: __('Ai_status'),searchList: {"0":__('Ai_status 0'),"1":__('Ai_status 1'),"2":__('Ai_status 2'),"3":__('Ai_status 3'),"4":__('Ai_status 4')}, formatter: Table.api.formatter.status},
                         {field: 'ar_status', title: __('Ar_status'), searchList: {"1":__('Ar_status 1'),"2":__('Ar_status 2')}, formatter: Table.api.formatter.status},
-                        {field: 'operate', title: __('Operate'), table: table, events: Table.api.events.operate, formatter: Table.api.formatter.operate}
+                        {field: 'operate', title: __('Operate'), table: table, events: Table.api.events.operate,buttons: [{
+                                    name: 'detail',
+                                    text: __('Ai_result_detail'),
+                                    icon: 'fa fa-list',
+                                    classname: 'btn btn-info btn-xs btn-detail btn-dialog',
+                                    url: 'data/aiResultDetail'
+                                }],  formatter: Table.api.formatter.operate}
                     ]
                 ]
             });

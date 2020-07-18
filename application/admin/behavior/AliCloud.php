@@ -13,7 +13,7 @@ class AliCloud
 {
     public function run(&$params)
     {
-    return true;
+    	return true;//测试上传阿里云
 	    $ret = json_decode($params,1);
 
 		$db_prefix = Config('database.prefix');

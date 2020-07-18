@@ -104,8 +104,15 @@ class Data extends Backend
 	                    $this->model->where('id', $ids)->update($update_status);
 	                    
 	                   // file_put_contents(CACHE_PATH . 'ggg3',var_export($tmp_ret,1));
-
-	                    Attachment::update(['id' => $attachmentList[0]->id, 'airesult' => json_encode($tmp_ret)]);
+	                   
+	                   	if(in_array($tmp_type[0],['image','text']))//同步会直接有结果
+						{
+							Attachment::update(['id' => $attachmentList[0]->id, 'airesult' => json_encode($tmp_ret),'is_aisuccess'=>1]);
+						}
+						else
+						{
+							Attachment::update(['id' => $attachmentList[0]->id, 'airesult' => json_encode($tmp_ret)]);
+						}
                     }
                     
                     
@@ -188,7 +195,14 @@ class Data extends Backend
 	                    $this->model->where('id', $this->model->id)->update($update_status);
 	                  //  file_put_contents(CACHE_PATH . 'ggg3',var_export($tmp_ret,1));
 
-	                    Attachment::update(['id' => $attachmentList[0]->id, 'airesult' => json_encode($tmp_ret)]);
+	                    if(in_array($tmp_type[0],['image','text']))//同步会直接有结果
+						{
+							Attachment::update(['id' => $attachmentList[0]->id, 'airesult' => json_encode($tmp_ret),'is_aisuccess'=>1]);
+						}
+						else
+						{
+							Attachment::update(['id' => $attachmentList[0]->id, 'airesult' => json_encode($tmp_ret)]);
+						}
                     }
 					
                     
@@ -325,6 +339,45 @@ class Data extends Backend
 			    print_r($e->getResult()->toArray());
 			}
      }
+     
+     /**
+     * 详情
+     */
+    public function aiResultDetail($ids)
+    {
+        $row = $this->model->get(['id' => $ids]);
+        if(empty($row->ai_result_detail))
+        {
+	         $this->error(__('No Results were found'));
+        }
+        $tmp_result = json_decode($row->ai_result_detail,1);
+        file_put_contents(CACHE_PATH . 'ggg1',var_export($tmp_result,1));
+        foreach($tmp_result as $k => $v)
+        {
+        	if($v['suggestion'] == 'pass')
+        	{
+	        	$tmp_result[$k]['style'] = ' style="background-color: rgb(25, 187, 107);color: rgb(255, 255, 255);padding: 1px;" ';
+        	}
+        	if($v['suggestion'] == 'review')
+        	{
+	        	$tmp_result[$k]['style'] = ' style="background-color: rgb(255, 167, 37);color: rgb(255, 255, 255);padding: 1px;" ';
+        	}
+        	if($v['suggestion'] == 'block')
+        	{
+	        	$tmp_result[$k]['style'] = ' style="background-color: rgb(241, 85, 51);color: rgb(255, 255, 255);padding: 1px;" ';
+        	}
+        }    
+    
+        $this->view->assign("row", $tmp_result);
+        /*
+
+        if (!$row)
+            $this->error(__('No Results were found'));
+        
+        */
+        return $this->view->fetch();
+
+    }
     
 
 }
