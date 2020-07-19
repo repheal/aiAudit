@@ -72,20 +72,20 @@ class Data extends Backend
                         $row->validateFailException(true)->validate($validate);
                     }
                     $attachmentList = Attachment::where('url', $params['file'])
-                    	->field('id,airesult,extparam,mimetype')
+                    	->field('id,airesult,extparam,mimetype,is_aisuccess')
                     	->select();
                 	$params['file_id'] = $attachmentList[0]->id;
                 //	$params['data_status'] = 1;//上传成功
                     $result = $row->allowField(true)->save($params);
                     
-                    if(empty($attachmentList[0]->airesult))
+                    if(empty($attachmentList[0]->airesult) || empty($attachmentList[0]->is_aisuccess))
                     {
 	                    $tmp_type = explode('/',$attachmentList[0]->mimetype);
 	                    $tmp_ret = $this->aliyun_green_create($params['file'],$tmp_type[0]);
 	                    $update_status = [];
 	                    if($tmp_ret['code'] == 200)
 	                    {
-		                    if(!isset($tmp_ret['data'][0]['results']))//不存在，基本是异步
+		                    if(!isset($tmp_ret['data'][0]['results']) && empty($attachmentList[0]->is_aisuccess))//不存在，基本是异步
 		                    {
 			                    $update_status['data_status'] = 4;
 			                    $update_status['ai_status'] = 0;
@@ -105,13 +105,13 @@ class Data extends Backend
 	                    
 	                   // file_put_contents(CACHE_PATH . 'ggg3',var_export($tmp_ret,1));
 	                   
-	                   	if(in_array($tmp_type[0],['image','text']))//同步会直接有结果
+	                   	if(in_array($tmp_type[0],['image','text']) && $update_status['ai_status'] !=4)//同步会直接有结果
 						{
-							Attachment::update(['id' => $attachmentList[0]->id, 'airesult' => json_encode($tmp_ret),'is_aisuccess'=>1]);
+							Attachment::update(['id' => $attachmentList[0]->id, 'airesult' => $tmp_ret ? json_encode($tmp_ret) : '','is_aisuccess'=>1]);
 						}
 						else
 						{
-							Attachment::update(['id' => $attachmentList[0]->id, 'airesult' => json_encode($tmp_ret)]);
+							Attachment::update(['id' => $attachmentList[0]->id, 'airesult' => $tmp_ret ? json_encode($tmp_ret) : '']);
 						}
                     }
                     
@@ -160,19 +160,19 @@ class Data extends Backend
                         $validate = is_bool($this->modelValidate) ? ($this->modelSceneValidate ? $name . '.add' : $name) : $this->modelValidate;
                         $this->model->validateFailException(true)->validate($validate);
                     }
-                    $params['data_status'] = 1;//上传成功
-                    $result = $this->model->allowField(true)->save($params);
-                    //file_put_contents(CACHE_PATH . 'ggg5',var_export($this->model->id,1));
-          
                     $attachmentList = Attachment::where('url', $params['file'])
-                    	->field('id,airesult,extparam,mimetype')
+                    	->field('id,airesult,extparam,mimetype,is_aisuccess')
                     	->select();
                     	
-                    	
-                    if(empty($attachmentList[0]->airesult))
+                    $params['file_id'] = $attachmentList[0]->id;
+                    $params['data_status'] = 1;//上传成功
+                    $result = $this->model->allowField(true)->save($params);
+                    
+                    if(empty($attachmentList[0]->airesult) || empty($attachmentList[0]->is_aisuccess))
                     {
                     	$tmp_type = explode('/',$attachmentList[0]->mimetype);
 	                    $tmp_ret = $this->aliyun_green_create($params['file'],$tmp_type[0]);
+	                 //   $this->error(__('Parameter %s can not be empty', ''));
 	                    $update_status = [];
 	                    if($tmp_ret['code'] == 200)
 	                    {
@@ -193,22 +193,15 @@ class Data extends Backend
 			                $update_status['ai_status'] = 4;
 	                    }
 	                    $this->model->where('id', $this->model->id)->update($update_status);
-	                  //  file_put_contents(CACHE_PATH . 'ggg3',var_export($tmp_ret,1));
-
-	                    if(in_array($tmp_type[0],['image','text']))//同步会直接有结果
+	                    if(in_array($tmp_type[0],['image','text']) && $update_status['ai_status'] !=4)//同步会直接有结果
 						{
-							Attachment::update(['id' => $attachmentList[0]->id, 'airesult' => json_encode($tmp_ret),'is_aisuccess'=>1]);
+							Attachment::update(['id' => $attachmentList[0]->id, 'airesult' => $tmp_ret ? json_encode($tmp_ret) : '','is_aisuccess'=>1]);
 						}
 						else
 						{
-							Attachment::update(['id' => $attachmentList[0]->id, 'airesult' => json_encode($tmp_ret)]);
+							Attachment::update(['id' => $attachmentList[0]->id, 'airesult' => $tmp_ret ? json_encode($tmp_ret) : '']);
 						}
-                    }
-					
-                    
-                     $this->error(__('Parameter %s can not be empty', ''));
-                    
-                    
+                    } 
                 } catch (ValidateException $e) {
                     
                     $this->error($e->getMessage());
@@ -225,8 +218,7 @@ class Data extends Backend
                 } else {
                     $this->error(__('No rows were inserted'));
                 }
-           
-                
+                $this->error(__('Parameter %s can not be empty', ''));
             }
             
         }
@@ -235,30 +227,51 @@ class Data extends Backend
      
      private function aliyun_green_create($file,$type = 'image')
      {
-     		$tmp = explode('/' , $file);
-	     	$filename = $tmp[count($tmp)-1];
-			//$filePath = "/Users/repheal/Downloads/timg-1.jpeg";
-			$filePath = ROOT_PATH . 'public' . $file;
-/*
-			file_put_contents(CACHE_PATH . 'ggg',var_export($filePath,1));
-			file_put_contents(CACHE_PATH . 'ggg1',var_export($filename,1));
-*/
+     		$tmp 		= explode('/' , $file);
+	     	$filename 	= $tmp[count($tmp)-1];
+			$filePath 	= ROOT_PATH . 'public' . $file;
 			$config_aliyun = config('aliyun');
-			$ossClient = new OssClient($config_aliyun['accessKeyId'], $config_aliyun['accessKeySecret'], $config_aliyun['endpoint']);
-			$ret = $ossClient->uploadFile($config_aliyun['bucket'], $filename, $filePath);
+			if($type == 'text')
+			{
+				//  可能的编码格式
+			    $encoding_type_list = array('GBK', 'UTF-8', 'UTF-16LE', 'UTF-16BE', 'ISO-8859-1', 'GB2312');
+			    //  根据文件地址获取内容
+			    $file_contents = file_get_contents($filePath);
+			   // file_put_contents(CACHE_PATH . 'ggg1',$file_contents);
+			    //  遍历编码格式
+				$txt_encoding_type = '';
+			    foreach ($encoding_type_list as $encoding_type) 
+			    {
+			        $file_contents_encoded = mb_convert_encoding($file_contents, $encoding_type, $encoding_type);
+			        if (md5($file_contents) == md5($file_contents_encoded)) 
+			        {
+			            $txt_encoding_type = $encoding_type;
+			        }
+			    }
+			    //file_put_contents(CACHE_PATH . 'ggg',$txt_encoding_type);
+				$task1  = [
+			        'dataId' => uniqid('', true),
+			        'content'    => $file_contents,
+			    ];
+			}
+			else
+			{
+				$ossClient = new OssClient($config_aliyun['accessKeyId'], $config_aliyun['accessKeySecret'], $config_aliyun['endpoint']);
+				$ret = $ossClient->uploadFile($config_aliyun['bucket'], $filename, $filePath);
+				$signedUrl = $ossClient->signUrl($config_aliyun['bucket'], $filename, 3600, 'GET');
+				$task1  = [
+			        'dataId' => uniqid('', true),
+			        'url'    => $signedUrl,
+			    ];
+			}
 			/*
 			$options = array(
 			OssClient::OSS_PROCESS => "image/resize,m_lfit,h_100,w_100",
 			);
-			*/
-			$signedUrl = $ossClient->signUrl($config_aliyun['bucket'], $filename, 3600, 'GET');
-			/* file_put_contents(CACHE_PATH . 'sss1',$signedUrl); */
-
+			*/			
+//			file_put_contents(CACHE_PATH . 'sss1',$signedUrl);
 	        try {
-			    $task1  = [
-			        'dataId' => uniqid('', true),
-			        'url'    => $signedUrl,
-			    ];
+			    
 			    AlibabaCloud::accessKeyClient($config_aliyun['accessKeyId'], $config_aliyun['accessKeySecret'])->regionId('cn-shanghai')->asDefaultClient();
 			    
 			    switch($type)
@@ -269,7 +282,7 @@ class Data extends Backend
 			                          ->imageSyncScan()
 			                          ->jsonBody([
 			                                         'tasks'  => [$task1],
-			                                         'scenes' => ['porn', 'terrorism'],
+			                                         'scenes' => ['porn', 'terrorism','sface'],
 			                                     ])
 			                          ->host($config_aliyun['greenPoint'])
 			                          ->connectTimeout(20)
@@ -283,7 +296,7 @@ class Data extends Backend
 			                          ->VideoAsyncScan()
 			                          ->jsonBody([
 			                                         'tasks'  => [$task1],
-			                                         'scenes' => ['porn', 'terrorism','live','logo','ad'],
+			                                         'scenes' => ['porn', 'terrorism','live','logo','ad','sface'],
 			                                         'audioScenes' => 'antispam',
 			                                     ])
 			                          ->host($config_aliyun['greenPoint'])
@@ -309,16 +322,12 @@ class Data extends Backend
 				    
 				    break;
 				    case 'text':
-				    break;
-				    default:
-				    unset($task1['url']);
-				    $task1['content'] = '测试';
 				    	$result = AlibabaCloud::green()
 			                          ->v20180509()
 			                          ->TextScan()
 			                          ->jsonBody([
 			                                         'tasks'  => [$task1],
-			                                         'scenes' => ['porn', 'terrorism'],
+			                                         'scenes' => ['antispam'],
 			                                     ])
 			                          ->host($config_aliyun['greenPoint'])
 			                          ->connectTimeout(20)
@@ -326,9 +335,10 @@ class Data extends Backend
 			                          ->request();
 			             $tmp_ret = $result->toArray();
 				    break;
+				    default:
+			             $tmp_ret = [];
+				    break;
 			    }
-			    
-			    //file_put_contents(CACHE_PATH . 'ggg2',var_export($tmp_ret,1));
 			    return $tmp_ret;
 			} catch (ClientException $e) {
 			    // Print the error message
@@ -351,7 +361,7 @@ class Data extends Backend
 	         $this->error(__('No Results were found'));
         }
         $tmp_result = json_decode($row->ai_result_detail,1);
-        file_put_contents(CACHE_PATH . 'ggg1',var_export($tmp_result,1));
+        //file_put_contents(CACHE_PATH . 'ggg1',var_export($tmp_result,1));
         foreach($tmp_result as $k => $v)
         {
         	if($v['suggestion'] == 'pass')

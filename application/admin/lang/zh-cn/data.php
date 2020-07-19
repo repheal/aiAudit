@@ -54,5 +54,6 @@ return [
 	'Label'				=> '标签',
 	'Rate'				=> '概率',
 	'Scene'				=> '场景',
-	'Suggestion'		=> '建议',  	
+	'Suggestion'		=> '建议',
+	'Sface'				=> '含敏感人脸',  	
 ];

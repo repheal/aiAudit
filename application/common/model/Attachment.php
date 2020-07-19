@@ -28,8 +28,10 @@ class Attachment extends Model
             "audio/*"        => "音频",
             "video/*"        => "视频",
             "text/*"         => "文档",
+/*
             "application/*"  => "应用",
             "zip,rar,7z,tar" => "压缩包",
+*/
         ];
         return $data;
     }

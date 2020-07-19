@@ -32,10 +32,10 @@ class Crond extends Command
     {
         //在这个里做自己的计划任务工作等等,建议自己创建一个model业务类专门管理你的业务逻辑,最好通过静态方法调用
        // echo 123;
-       	$this->aliyun_green_async();//针对未提交的素材进行提交
-        $this->aliyun_green_callback();//针对视频，音频的数据,回调查询
-        $this->attachment_ai_relation_sync();//数据同步至AI结果关系表
-        $this->data_ai_result_sync();//数据中心同步ai审核的结果
+       	$this->aliyun_green_async();//1-针对未提交的素材进行提交
+        $this->aliyun_green_callback();//2-针对视频，音频的数据,回调查询
+        $this->attachment_ai_relation_sync();//3-数据同步至AI结果关系表
+        $this->data_ai_result_sync();//4-数据中心同步ai审核的结果
         
 		
     }
@@ -51,6 +51,7 @@ class Crond extends Command
 			    $aids[] = $value->file_id;
 		    }
 	    }
+	    
 	    if($aids)
 	    {
 	    	$attachmentAiRelationList = AttachmentAiRelation::where('aid' , 'in', $aids)->select();
@@ -101,31 +102,30 @@ class Crond extends Command
 		    	{
 			    	$dataAiResultKey[$value->aid] = $value->suggestion;
 		    	}		    	
-	    	}		    
-	    }
-	    $ai_dict = array(
-	    	'pass' 		=> 1,
-	    	'review' 	=> 2,
-	    	'block' 	=> 3,
-	    );
-	    if($dataAiResultKey)
-	    {
-		    foreach($dataAiResultKey as $key => $value)
+	    	}
+	    	$ai_dict = array(
+		    	'pass' 		=> 1,
+		    	'review' 	=> 2,
+		    	'block' 	=> 3,
+		    );
+		    if($dataAiResultKey)
 		    {
-			    Data::where('file_id' , $key)->update(['ai_result'=>$value,'ai_result_detail'=>json_encode($dataAiResult[$key]),'ai_status' => $ai_dict[$value]]);//同步完成后，更新素材表
-		    }		    
+			    foreach($dataAiResultKey as $key => $value)
+			    {
+				    Data::where('file_id' , $key)->update(['ai_result'=>$value,'ai_result_detail'=>json_encode($dataAiResult[$key]),'ai_status' => $ai_dict[$value]]);//同步完成后，更新素材表
+			    }
+			    echo "4-完成数据中心同步ai审核结果\n";	    
+		    }
+		   
+		    //print_r($dataAiResultKey);
+		    //print_r($dataAiResult);		    
 	    }
-	    
-	    echo "完成数据中心同步ai审核结果\n";
-	    print_r($dataAiResultKey);
-	    //print_r($dataAiResult);
-
-	    
+	     
     }
     
     private function attachment_ai_relation_sync()
     {
-    	$attachmentList = Attachment::field('id,mimetype,airesult,is_aisyncrelation')->where('airesult!="" and is_aisyncrelation=0')->select();
+    	$attachmentList = Attachment::field('id,mimetype,airesult,is_aisyncrelation')->where('is_aisuccess=1 and is_aisyncrelation=0')->select();
     	if($attachmentList)
     	{
     		$tmp_data 	= array();
@@ -176,28 +176,31 @@ class Crond extends Command
 	    		}
     		}
     		
-    		$db_prefix = Config('database.prefix');
-    		$sql = "replace into `" . $db_prefix . "attachment_ai_relation`(aid,label,rate,scene,suggestion,result_type,createtime,updatetime) values";
-    		$space = $sql_suffix = '';
-    		//$tmp = $sql =Db::query($sql);
-    		$aids = [];
-	    	foreach($tmp_data as $k => $v)
-	    	{
-		    	$sql_suffix .= $space . "(" .  $v['aid'] . ",'" . $v['label'] . "','" . $v['rate'] . "','" . $v['scene'] . "','" . $v['suggestion'] . "','" . $v['result_type'] . "'," . $v['createtime'] . "," . $v['updatetime'] . ")";
-		    	$space = ',';
-		    	$aids[] = $v['aid'];
-	    	}
-	    	$aids = array_unique($aids);
-			Attachment::where('id' , 'in', $aids)->update(['is_aisyncrelation'=>1]);//同步完成后，更新素材表
-	    	echo ("已经执行同步AI结果关系\n");
+    		if($tmp_data)
+    		{
+	    		$db_prefix = Config('database.prefix');
+	    		$sql = "replace into `" . $db_prefix . "attachment_ai_relation`(aid,label,rate,scene,suggestion,result_type,createtime,updatetime) values";
+	    		$space = $sql_suffix = '';
+	    		//$tmp = $sql =Db::query($sql);
+	    		$aids = [];
+		    	foreach($tmp_data as $k => $v)
+		    	{
+			    	$sql_suffix .= $space . "(" .  $v['aid'] . ",'" . $v['label'] . "','" . $v['rate'] . "','" . $v['scene'] . "','" . $v['suggestion'] . "','" . $v['result_type'] . "'," . $v['createtime'] . "," . $v['updatetime'] . ")";
+			    	$space = ',';
+			    	$aids[] = $v['aid'];
+		    	}
+		    	Db::query($sql . $sql_suffix);
+		    	$aids = array_unique($aids);
+		    	
+				Attachment::where('id' , 'in', $aids)->update(['is_aisyncrelation'=>1]);//同步完成后，更新素材表
+		    	echo ("3-已经执行同步AI结果关系\n");
+    		}	
     	}
-    	
-    	
     }
     
     private function aliyun_green_async()//异步执行，未提交的素材
     {
-	    $attachmentList = Attachment::where('airesult=""')->select();
+	    $attachmentList = Attachment::where("airesult='' and is_aisuccess=0")->select();
 		//print_r($attachmentList);
 		if($attachmentList)
 		{
@@ -227,19 +230,19 @@ class Crond extends Command
 		        Data::where('file_id', $value->id)->update($update_status);
 		      //  file_put_contents(CACHE_PATH . 'ggg3',var_export($tmp_ret,1));
 //		      	if(in_array($tmp_type[0],['image','audio','video','text']))
-				if(in_array($tmp_type[0],['image','text']))//同步会直接有结果
+				if(in_array($tmp_type[0],['image','text']) && !$update_status['ai_status'] != 4)//同步会直接有结果
 				{
-					Attachment::update(['id' => $value->id, 'airesult' => json_encode($tmp_ret),'is_aisuccess'=>1]);
+					Attachment::update(['id' => $value->id, 'airesult' => $tmp_ret ? json_encode($tmp_ret) : '','is_aisuccess'=>1]);
 				}
 				else
 				{
-					Attachment::update(['id' => $value->id, 'airesult' => json_encode($tmp_ret)]);
+					Attachment::update(['id' => $value->id, 'airesult' => $tmp_ret ? json_encode($tmp_ret) : '']);
 				}
 
 		      	
 		        
 			}
-			echo ("已经执行同步素材\n");
+			echo ("2-已经执行同步素材\n");
 		}
 		
     }
@@ -325,8 +328,9 @@ class Crond extends Command
 							        $update_status['data_status'] = 5;
 							        $update_status['ai_status'] = 0;
 							        Attachment::update(['id' => $value['id'], 'airesult' => json_encode($tmp_ret),'is_aisuccess'=>1]);
+							        echo ("1-已经执行回调同步\n");
 							    }
-							    echo ("已经执行回调同步\n");
+							    
 							    
 							}
 							else//失败
@@ -355,20 +359,48 @@ class Crond extends Command
 	     	$filename = $tmp[count($tmp)-1];
 			$filePath = ROOT_PATH . 'public' . $file;
 			$config_aliyun = config('aliyun');
-			$ossClient = new OssClient($config_aliyun['accessKeyId'], $config_aliyun['accessKeySecret'], $config_aliyun['endpoint']);
-			$ret = $ossClient->uploadFile($config_aliyun['bucket'], $filename, $filePath);
+			
+			if($type == 'text')
+			{
+				//  可能的编码格式
+			    $encoding_type_list = array('GBK', 'UTF-8', 'UTF-16LE', 'UTF-16BE', 'ISO-8859-1', 'GB2312');
+			    //  根据文件地址获取内容
+			    $file_contents = file_get_contents($filePath);
+			   // file_put_contents(CACHE_PATH . 'ggg1',$file_contents);
+			    //  遍历编码格式
+				$txt_encoding_type = '';
+			    foreach ($encoding_type_list as $encoding_type) 
+			    {
+			        $file_contents_encoded = mb_convert_encoding($file_contents, $encoding_type, $encoding_type);
+			        if (md5($file_contents) == md5($file_contents_encoded)) 
+			        {
+			            $txt_encoding_type = $encoding_type;
+			        }
+			    }
+			    //file_put_contents(CACHE_PATH . 'ggg',$txt_encoding_type);
+				$task1  = [
+			        'dataId' => uniqid('', true),
+			        'content'    => $file_contents,
+			    ];
+			}
+			else
+			{
+				$ossClient = new OssClient($config_aliyun['accessKeyId'], $config_aliyun['accessKeySecret'], $config_aliyun['endpoint']);
+				$ret = $ossClient->uploadFile($config_aliyun['bucket'], $filename, $filePath);
+				$signedUrl = $ossClient->signUrl($config_aliyun['bucket'], $filename, 3600, 'GET');
+				$task1  = [
+			        'dataId' => uniqid('', true),
+			        'url'    => $signedUrl,
+			    ];
+			}
+			
 			/*
 			$options = array(
 			OssClient::OSS_PROCESS => "image/resize,m_lfit,h_100,w_100",
 			);
 			*/
-			$signedUrl = $ossClient->signUrl($config_aliyun['bucket'], $filename, 3600, 'GET');
-
 	        try {
-			    $task1  = [
-			        'dataId' => uniqid('', true),
-			        'url'    => $signedUrl,
-			    ];
+			    
 			    AlibabaCloud::accessKeyClient($config_aliyun['accessKeyId'], $config_aliyun['accessKeySecret'])->regionId('cn-shanghai')->asDefaultClient();
 			    
 			    switch($type)
@@ -379,7 +411,7 @@ class Crond extends Command
 			                          ->imageSyncScan()
 			                          ->jsonBody([
 			                                         'tasks'  => [$task1],
-			                                         'scenes' => ['porn', 'terrorism', 'ad', 'qrcode', 'live', 'logo'],
+			                                         'scenes' => ['porn', 'terrorism','sface'],
 			                                     ])
 			                          ->host($config_aliyun['greenPoint'])
 			                          ->connectTimeout(20)
@@ -393,7 +425,7 @@ class Crond extends Command
 			                          ->VideoAsyncScan()
 			                          ->jsonBody([
 			                                         'tasks'  => [$task1],
-			                                         'scenes' => ['porn', 'terrorism','live','logo','ad'],
+			                                         'scenes' => ['porn', 'terrorism','live','logo','ad','sface'],
 			                                         'audioScenes' => 'antispam',
 			                                     ])
 			                          ->host($config_aliyun['greenPoint'])
@@ -419,11 +451,7 @@ class Crond extends Command
 				    
 				    break;
 				    case 'text':
-				    break;
-				    default:
-				    unset($task1['url']);
-				    $task1['content'] = '测试';
-				    	$result = AlibabaCloud::green()
+				    $result = AlibabaCloud::green()
 			                          ->v20180509()
 			                          ->TextScan()
 			                          ->jsonBody([
@@ -435,6 +463,9 @@ class Crond extends Command
 			                          ->timeout(25)
 			                          ->request();
 			             $tmp_ret = $result->toArray();
+				    break;
+				    default:
+			             $tmp_ret = [];
 				    break;
 			    }
 			    return $tmp_ret;
