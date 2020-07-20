@@ -5,6 +5,7 @@
             <th>{:__('Rate')}</th>
             <th>{:__('Scene')}</th>
             <th>{:__('Suggestion')}</th>
+            <th>{:__('Remark')}</th>
         </tr>
     </thead>
     <tbody>
@@ -14,6 +15,7 @@
                 <td>{$vo['rate']}%</td>
                 <td>{:__($vo['scene'])}</td>
                 <td><span {$vo['style']}>{:__($vo['suggestion'])}</span></td>
+                <td>{:__($vo['extra'])}</td>
             </tr>
         {/volist}
     </tbody>

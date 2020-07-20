@@ -125,7 +125,7 @@ class Crond extends Command
     
     private function attachment_ai_relation_sync()
     {
-    	$attachmentList = Attachment::field('id,mimetype,airesult,is_aisyncrelation')->where('is_aisuccess=1 and is_aisyncrelation=0')->select();
+    	$attachmentList = Attachment::field('id,mimetype,airesult,is_aisyncrelation')->where('need_ai=1 and is_aisuccess=1 and is_aisyncrelation=0')->select();
     	if($attachmentList)
     	{
     		$tmp_data 	= array();
@@ -200,7 +200,7 @@ class Crond extends Command
     
     private function aliyun_green_async()//异步执行，未提交的素材
     {
-	    $attachmentList = Attachment::where("airesult='' and is_aisuccess=0")->select();
+	    $attachmentList = Attachment::where("need_ai=1 and airesult='' and is_aisuccess=0")->select();
 		//print_r($attachmentList);
 		if($attachmentList)
 		{
@@ -249,7 +249,7 @@ class Crond extends Command
     
     private function aliyun_green_callback()
     {
-	 		$attachmentList = Attachment::where('mimetype in ("video/mp4","audio/mpeg")')->select();
+	 		$attachmentList = Attachment::where('need_ai=1 and mimetype in ("video/mp4","audio/mpeg")')->select();
 
 			$config_aliyun = Config::get('aliyun');
 

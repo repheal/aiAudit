@@ -55,5 +55,6 @@ return [
 	'Rate'				=> '概率',
 	'Scene'				=> '场景',
 	'Suggestion'		=> '建议',
-	'Sface'				=> '含敏感人脸',  	
+	'Sface'				=> '含敏感人脸',
+	'Remark'			=> '备注',	
 ];

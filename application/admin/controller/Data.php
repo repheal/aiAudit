@@ -373,6 +373,7 @@ class Data extends Backend
         }
         $tmp_result = json_decode($row->ai_result_detail,1);
         //file_put_contents(CACHE_PATH . 'ggg1',var_export($tmp_result,1));
+        $sface_id = 0;
         foreach($tmp_result as $k => $v)
         {
         	if($v['suggestion'] == 'pass')
@@ -387,7 +388,39 @@ class Data extends Backend
         	{
 	        	$tmp_result[$k]['style'] = ' style="background-color: rgb(241, 85, 51);color: rgb(255, 255, 255);padding: 1px;" ';
         	}
-        }    
+        	if($v['label']	== 'sface')
+        	{
+	        	$sface_id = $row['file_id'];
+        	}
+        	else
+        	{
+	        	$tmp_result[$k]['extra'] = '无';
+        	}
+        }
+        if($sface_id)//针对图片，视频的再考虑
+        { 
+       		$attachmentList = Attachment::where('id', $sface_id)
+                    	->field('id,airesult,extparam,mimetype,is_aisuccess')
+                    	->select();
+
+	        if($attachmentList && $attachmentList[0]->airesult)
+	        {
+	        	$tmp_airesult = json_decode($attachmentList[0]->airesult,1);
+	        	$tmp_airesult = $tmp_airesult['data'][0]['results'];
+	        	foreach($tmp_airesult as $k => $v)
+	        	{
+		        	if($v['label'] == 'sface')
+		        	{
+		        		if(isset($v['sfaceData']) && !empty($v['sfaceData']))//此处针对图片
+		        		{
+			        		$tmp_result[$k]['extra'] = $v['sfaceData'][0]['faces'][0]['name'] . '-相似度：'  . $v['sfaceData'][0]['faces'][0]['rate'] . '%';
+		        		}
+		        		// !isset($v['frames']) 多个face
+		        	}
+	        	}
+		        file_put_contents(CACHE_PATH . 'ggg1',var_export($tmp_result,1));
+	        }
+        }
     
         $this->view->assign("row", $tmp_result);
         /*
