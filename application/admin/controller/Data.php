@@ -71,6 +71,7 @@ class Data extends Backend
                         $validate = is_bool($this->modelValidate) ? ($this->modelSceneValidate ? $name . '.edit' : $name) : $this->modelValidate;
                         $row->validateFailException(true)->validate($validate);
                     }
+                    
                     $attachmentList = Attachment::where('url', $params['file'])
                     	->field('id,airesult,extparam,mimetype,is_aisuccess')
                     	->select();
@@ -78,7 +79,7 @@ class Data extends Backend
                 //	$params['data_status'] = 1;//上传成功
                     $result = $row->allowField(true)->save($params);
                     
-                    if(empty($attachmentList[0]->airesult) || empty($attachmentList[0]->is_aisuccess))
+                    if(empty($attachmentList[0]->airesult) || empty($attachmentList[0]->is_aisuccess))//说明当前的file里面没有ai结果
                     {
 	                    $tmp_type = explode('/',$attachmentList[0]->mimetype);
 	                    $tmp_ret = $this->aliyun_green_create($params['file'],$tmp_type[0]);
@@ -113,6 +114,16 @@ class Data extends Backend
 						{
 							Attachment::update(['id' => $attachmentList[0]->id, 'airesult' => $tmp_ret ? json_encode($tmp_ret) : '']);
 						}
+                    }
+                    else//有ai结果
+                    {
+                    	$update_status = array(
+                    		'data_status' 		=> 5,
+                    		'ai_status' 		=> 0,
+                    		'ai_result' 		=> '',
+                    		'ai_result_detail' 	=> '',
+                    	);
+	                    $this->model->where('id', $ids)->update($update_status);
                     }
                     
                     
