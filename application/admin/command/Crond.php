@@ -3,12 +3,14 @@ namespace app\admin\command;
 
 use think\Config;
 use think\db;
+use fast\Random;
 use think\console\Command;
 use think\console\Input;
 use think\console\Output;
 use think\Exception;
 use app\common\model\Attachment;
 use app\common\model\AttachmentAiRelation;
+use app\common\model\AttachmentAiSface;
 use app\admin\model\Data;
 use OSS\OssClient;
 use AlibabaCloud\Client\AlibabaCloud;
@@ -36,6 +38,8 @@ class Crond extends Command
         $this->aliyun_green_callback();//2-针对视频，音频的数据,回调查询
         $this->attachment_ai_relation_sync();//3-数据同步至AI结果关系表
         $this->data_ai_result_sync();//4-数据中心同步ai审核的结果
+        $this->attachment_ai_sface_local();//5-视频敏感人物图本地化
+//$this->test();
         
 		
     }
@@ -327,6 +331,10 @@ class Crond extends Command
 							    {
 							        $update_status['data_status'] = 5;
 							        $update_status['ai_status'] = 0;
+							        if($value['type'] === 'video')
+							        {
+								        $this->attachment_ai_sface_sync($tmp_ret,$value['id']);
+							        }
 							        Attachment::update(['id' => $value['id'], 'airesult' => json_encode($tmp_ret),'is_aisuccess'=>1]);
 							        echo ("1-已经执行回调同步\n");
 							    }
@@ -478,4 +486,186 @@ class Crond extends Command
 			    print_r($e->getResult()->toArray());
 			}
      }
+     
+     private function attachment_ai_sface_sync($data = array(),$aid = 46)
+     {
+//file_put_contents(CACHE_PATH . 'ggg1',var_export($data,1));
+/*
+	     $data = file_get_contents(CACHE_PATH . 'gggs');
+	     $data = json_decode($data,1);
+*/
+	     $tmp_data = [];
+	     if(!empty($data))
+	     {
+		     if(isset($data['data'][0]['results']) && !empty($data['data'][0]['results']))
+		     {
+			     $tmp_results = $data['data'][0]['results'];
+			     
+			     foreach($tmp_results as $key => $value)
+			     {
+				     if(($value['label'] === 'sface' || $value['label'] === 'terrorism') && isset($value['frames']))
+				     {
+					     foreach($value['frames'] as $k => $v)
+					     {
+						     if(isset($v['sfaceData']) && $v['sfaceData'] && $v['rate'] > 0)
+						     {
+							     foreach($v['sfaceData'] as $ks => $vs)
+							     {
+							     	if(isset($vs['faces']) && $vs['faces'])
+							     	{
+								     	$tmp_data[$value['label']][$vs['faces'][0]['id']][$vs['faces'][0]['rate']] = array(
+									     	'name'		=> $vs['faces'][0]['name'],
+									     	'rate'		=> $vs['faces'][0]['rate'],
+									     	'url'		=> $v['url'],
+									     	'scene'		=> $value['scene'],
+									     	'label'		=> $value['label'],
+									     	'face_id'	=> $vs['faces'][0]['id'],
+								     	);
+							     	}								     
+							     }
+						     }
+					     }
+				     }
+			     }
+		     }
+	     }
+	     else
+	     {
+		     return true;
+	     }
+	     
+	     if($tmp_data)
+	     {
+		     $tmp_results 	= array();
+		     $sql_params		= array();
+		     foreach($tmp_data as $key => $value)
+		     {
+		     	foreach($value as $k => $v)
+		     	{
+			     	$tmp_results[] = $tmp = max($value[$k]);
+			     	
+			     	foreach($v as $kk => $vv)
+			     	{
+			     		$tmp_sql_data = array();
+			     		$tmp_sql_data['main'] = 0;
+			     		if($tmp['rate'] === $vv['rate'])
+			     		{
+				     		$tmp_sql_data['main'] = 1;
+			     		}
+			     		$tmp_sql_data['aid'] 		= $aid;
+			     		$tmp_sql_data['skey'] 		= md5($vv['url']);
+			     		$tmp_sql_data['surl'] 		= $vv['url'];
+			     		$tmp_sql_data['scene'] 		= $vv['scene'];
+			     		$tmp_sql_data['label'] 		= $vv['label'];
+			     		$tmp_sql_data['ext'] 		= addslashes(json_encode($vv));
+			     		$tmp_sql_data['createtime'] = time();
+			     		$tmp_sql_data['updatetime'] = time();
+			     		$sql_params[] = $tmp_sql_data;
+			     	}
+		     	}
+		     }
+		     //print_r($sql_params);exit;
+		     if($sql_params)
+		     {
+				    $db_prefix = Config('database.prefix');
+		    		$sql = "replace into `" . $db_prefix . "attachment_ai_sface`(aid,skey,surl,scene,label,ext,main,createtime,updatetime) values";
+		    		$space = $sql_suffix = '';
+		    		//$tmp = $sql =Db::query($sql);
+		    		$aids = [];
+			    	foreach($sql_params as $k => $v)
+			    	{
+				    	$sql_suffix .= $space . "(" .  $v['aid'] . ",'" . $v['skey'] . "','" . $v['surl'] . "','" . $v['scene'] . "','" . $v['label'] . "','" . $v['ext'] . "','" . $v['main'] . "'," . $v['createtime'] . "," . $v['updatetime'] . ")";
+				    	$space = ',';
+				    	$aids[] = $v['aid'];
+			    	}
+			    	Db::query($sql . $sql_suffix);
+		     }
+	     }
+     }
+     
+     private function attachment_ai_sface_local()
+     {
+		$attachmentAiSfaceList = AttachmentAiSface::where("url=''")->select();
+		$list = array();
+		if($attachmentAiSfaceList)
+		{
+			foreach($attachmentAiSfaceList as $key => $value)
+			{
+				$list[] = array(
+					'aid' 	=> $value->aid,
+					'skey' 	=> $value->skey,
+					'scene' => $value->scene,
+					'surl' => $value->surl,
+				);
+			} 
+		}
+		if($list)
+		{
+			foreach($list as $key => $value)
+			{
+				//$surl = 'https://aligreen-shanghai.oss-cn-shanghai.aliyuncs.com/prod/hammal/20565a39/13553814_2472f175792c45fcecec53f3fa45f7d8.mp4-frames/f00029.jpg?Expires=1595260763&OSSAccessKeyId=H4sp5QfNbuDghquU&Signature=Z72zM6r8ehml09VFJx4HT6vDOQw%3D';
+				$surl = $value['surl'];
+				$tmp_filecontent = file_get_contents($surl);
+				$tmp_fileinfo = pathinfo($surl);
+				$extparam = array(
+					'name'	=> Random::alnum(4) . $tmp_fileinfo['filename'] . '.jpg',
+				);
+				$filePath = CACHE_PATH . $extparam['name'];
+				@file_put_contents($filePath,$tmp_filecontent);
+		
+		        $upload = Config::get('upload');
+		        $suffix = strtolower(pathinfo($filePath, PATHINFO_EXTENSION));
+		
+		        $replaceArr = [
+		            '{year}'     => date("Y"),
+		            '{mon}'      => date("m"),
+		            '{day}'      => date("d"),
+		            '{suffix}'   => $suffix,
+		            '{.suffix}'  => $suffix ? '.' . $suffix : '',
+		            '{filemd5}'  => md5_file($filePath),
+		        ];
+		        @unlink($filePath);
+		        $savekey = $upload['savekey'];
+		  
+		        $savekey = str_replace(array_keys($replaceArr), array_values($replaceArr), $savekey);
+		     
+		        $uploadDir = substr($savekey, 0, strripos($savekey, '/') + 1);
+		        $fileName = substr($savekey, strripos($savekey, '/') + 1);
+		        //error_reporting(0);
+				$file_path = ROOT_PATH . 'public' . $uploadDir . $fileName;
+				if(!file_exists($file_path))
+				{
+					
+					@file_put_contents(ROOT_PATH . 'public' . $uploadDir . $fileName,$tmp_filecontent);
+				}
+				
+				$img_info 	= getimagesize($file_path);
+				$img_size 	= filesize($file_path);
+		        $sha1		= hash_file('sha1',$file_path);
+		
+		        $params = array(
+		            'admin_id'    => 1,
+		            'user_id'     => 0,
+		            'filesize'    => $img_size,
+		            'imagewidth'  => $img_info[0],
+		            'imageheight' => $img_info[1],
+		            'imagetype'   => $suffix,
+		            'imageframes' => 0,
+		            'mimetype'    => $img_info['mime'],
+		            'url'         => $uploadDir . $fileName,
+		            'uploadtime'  => time(),
+		            'storage'     => 'local',
+		            'sha1'        => $sha1,
+		            'extparam'    => json_encode($extparam),
+		            'need_ai'	  => 0,
+		        );
+		       Attachment::create($params);
+
+		       AttachmentAiSface::where("aid=" . $value['aid'] . " and skey='" . $value['skey'] . "' and scene='" . $value['scene'] . "'") ->update(['url' => $params['url']]);
+			}
+			echo "5-视频敏感人物图本地化\n";
+		}
+     }
 }
+
+

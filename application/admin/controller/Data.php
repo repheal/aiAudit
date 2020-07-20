@@ -6,6 +6,7 @@ use app\common\controller\Backend;
 
 
 use app\common\model\Attachment;
+use app\common\model\AttachmentAiSface;
 use OSS\OssClient;
 //use OSS\Core\OssException;
 use AlibabaCloud\Client\AlibabaCloud;
@@ -394,34 +395,82 @@ class Data extends Backend
 	        	$sface_id = $row['file_id'];
         	}
         }
-        if($sface_id)//针对图片，视频的再考虑
+        if($sface_id)//针对图片，视频
         { 
-       		$attachmentList = Attachment::where('id', $sface_id)
-                    	->field('id,airesult,extparam,mimetype,is_aisuccess')
+       		$attachmentList 		= Attachment::where('id', $sface_id)
+                    	->field('id,airesult,extparam,mimetype,is_aisuccess,url')
                     	->select();
-
-	        if($attachmentList && $attachmentList[0]->airesult)
+                    	
+	        if($attachmentList && $attachmentList[0]->airesult)//针对图片
 	        {
 	        	$tmp_airesult = json_decode($attachmentList[0]->airesult,1);
 	        	$tmp_airesult = $tmp_airesult['data'][0]['results'];
 	        	foreach($tmp_airesult as $k => $v)
 	        	{
-		        	if($v['label'] == 'sface')
+		        	if($v['label'] == 'sface' || $v['label'] == 'terrorism')
 		        	{
 		        		if(isset($v['sfaceData']) && !empty($v['sfaceData']) && isset($v['sfaceData'][0]['faces']))//此处针对图片
 		        		{
 		        			$tmp_result[$k]['extra'] = $space = '';
 			        		foreach($v['sfaceData'][0]['faces'] as $kk => $vv)
 			        		{
-				        		$tmp_result[$k]['extra'] .= $space . $vv['name'] . '-' . __('Similarity', '') . '：'  . $vv['rate'] . '%';
-				        		$space = "\\r";
+			        			if($attachmentList[0]->url)
+			        			{
+				        			$tmp_result[$k]['extra'] .= $space . '<a href="' . $attachmentList[0]->url . '" target="_blank"><i class="fa fa-image"></i></a> '. $vv['name'] . '-' . __('Similarity', '') . '：'  . $vv['rate'] . '%';
+				        			$space = "<br/>";
+			        			}
+			        			else
+			        			{
+				        			$tmp_result[$k]['extra'] .= $space . $vv['name'] . '-' . __('Similarity', '') . '：'  . $vv['rate'] . '%';
+				        			$space = "<br/>";
+			        			}
 			        		}
 		        		}
 		        		// !isset($v['frames']) 多个视频face
 		        	}
 	        	}
-		        //file_put_contents(CACHE_PATH . 'ggg1',var_export($tmp_result,1));
+		        
 	        }
+	        
+	        $attachmentAiSfaceList	= AttachmentAiSface::where('aid=' . $sface_id.' and main=1')->select();
+            $tmp_sface = array();
+            if($attachmentAiSfaceList)//针对视频
+    		{
+        		foreach($attachmentAiSfaceList as $key => $value)
+        		{
+        			$tmp_ext = json_decode($value->ext,1);
+	        		$tmp_sface[$value['scene']][$value['label']][] = array(
+	        			'name' 	=> $tmp_ext['name'],
+	        			'rate' 	=> $tmp_ext['rate'],
+	        			'url' 	=> $value['url'],
+	        			'scene' 	=> $tmp_ext['scene'],
+	        			'label' 	=> $value['label'],
+	        		);
+        		}
+        		foreach($tmp_result as $key => $value)
+        		{
+	        		if(!empty($tmp_sface[$value['scene']][$value['label']]))
+	        		{
+	        			$tmp_result[$key]['extra'] = $space = '';
+		        		foreach($tmp_sface[$value['scene']][$value['label']] as $k => $v)
+		        		{
+		        			if($v['url'])
+		        			{
+			        			$tmp_result[$key]['extra'] .= $space . '<a href="' . $v['url'] . '" target="_blank"><i class="fa fa-image"></i></a> '. $v['name'] . '-' . __('Similarity', '') . '：'  . $v['rate'] . '%';
+		        			}
+		        			else
+		        			{
+			        			$tmp_result[$key]['extra'] .= $space . $v['name'] . '-' . __('Similarity', '') . '：'  . $v['rate'] . '%';
+		        			}
+			        		
+				        	$space = "<br/>";
+		        		}
+	        		}
+        		}
+    		}
+    //		file_put_contents(CACHE_PATH . 'ggg1',var_export($tmp_sface,1));
+    		file_put_contents(CACHE_PATH . 'ggg12',var_export($tmp_result,1));
+	        
         }
         $this->view->assign("row", $tmp_result);
         return $this->view->fetch();

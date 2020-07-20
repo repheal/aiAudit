@@ -1,7 +1,7 @@
 <?php
 
 return array (
-  'name' => 'Easy',
+  'name' => '白泽智能-审核平台',
   'beian' => '',
   'cdnurl' => '',
   'version' => '1.0.1',
