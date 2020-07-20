@@ -388,13 +388,10 @@ class Data extends Backend
         	{
 	        	$tmp_result[$k]['style'] = ' style="background-color: rgb(241, 85, 51);color: rgb(255, 255, 255);padding: 1px;" ';
         	}
+        	$tmp_result[$k]['extra'] = '无';
         	if($v['label']	== 'sface')
         	{
 	        	$sface_id = $row['file_id'];
-        	}
-        	else
-        	{
-	        	$tmp_result[$k]['extra'] = '无';
         	}
         }
         if($sface_id)//针对图片，视频的再考虑
@@ -413,9 +410,14 @@ class Data extends Backend
 		        	{
 		        		if(isset($v['sfaceData']) && !empty($v['sfaceData']))//此处针对图片
 		        		{
-			        		$tmp_result[$k]['extra'] = $v['sfaceData'][0]['faces'][0]['name'] . '-相似度：'  . $v['sfaceData'][0]['faces'][0]['rate'] . '%';
+		        			$tmp_result[$k]['extra'] = $space = '';
+			        		foreach($v['sfaceData'][0]['faces'] as $kk => $vv)
+			        		{
+				        		$tmp_result[$k]['extra'] .= $space . $vv['name'] . '-' . __('Similarity', '') . '：'  . $vv['rate'] . '%';
+				        		$space = "\\r";
+			        		}
 		        		}
-		        		// !isset($v['frames']) 多个face
+		        		// !isset($v['frames']) 多个视频face
 		        	}
 	        	}
 		        file_put_contents(CACHE_PATH . 'ggg1',var_export($tmp_result,1));

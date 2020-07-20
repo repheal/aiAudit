@@ -56,5 +56,6 @@ return [
 	'Scene'				=> '场景',
 	'Suggestion'		=> '建议',
 	'Sface'				=> '含敏感人脸',
-	'Remark'			=> '备注',	
+	'Remark'			=> '备注',
+	'Similarity'		=> '相似度',
 ];
