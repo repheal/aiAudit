@@ -1,7 +1,7 @@
 <?php
 
 return array (
-  'name' => 'Hoge',
+  'name' => 'Easy',
   'beian' => '',
   'cdnurl' => '',
   'version' => '1.0.1',
