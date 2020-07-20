@@ -408,7 +408,7 @@ class Data extends Backend
 	        	{
 		        	if($v['label'] == 'sface')
 		        	{
-		        		if(isset($v['sfaceData']) && !empty($v['sfaceData']))//此处针对图片
+		        		if(isset($v['sfaceData']) && !empty($v['sfaceData']) && isset($v['sfaceData'][0]['faces']))//此处针对图片
 		        		{
 		        			$tmp_result[$k]['extra'] = $space = '';
 			        		foreach($v['sfaceData'][0]['faces'] as $kk => $vv)
@@ -420,17 +420,10 @@ class Data extends Backend
 		        		// !isset($v['frames']) 多个视频face
 		        	}
 	        	}
-		        file_put_contents(CACHE_PATH . 'ggg1',var_export($tmp_result,1));
+		        //file_put_contents(CACHE_PATH . 'ggg1',var_export($tmp_result,1));
 	        }
         }
-    
         $this->view->assign("row", $tmp_result);
-        /*
-
-        if (!$row)
-            $this->error(__('No Results were found'));
-        
-        */
         return $this->view->fetch();
 
     }
