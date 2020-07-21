@@ -34,5 +34,6 @@ return [
     'Ai_status 4'   => '失败',
     'Ar_status'     => '人工状态',
     'Ar_status 1'   => '正常',
-    'Ar_status 2'   => '打回'
+    'Ar_status 2'   => '打回',
+    'Ar_status 3'   => '通过',
 ];

@@ -57,7 +57,7 @@ class Data extends Model
 
     public function getArStatusList()
     {
-        return ['1' => __('Ar_status 1'), '2' => __('Ar_status 2')];
+        return ['1' => __('Ar_status 1'), '2' => __('Ar_status 2'), '3' => __('Ar_status 3')];
     }
     
     public function getTypeTextAttr($value, $data)

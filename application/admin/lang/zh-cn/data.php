@@ -34,6 +34,7 @@ return [
     'Ar_status'     => '人工状态',
     'Ar_status 1'   => '正常',
     'Ar_status 2'   => '打回',
+    'Ar_status 3'   => '通过',
     'Ai_result_detail'	=> 'AI详情',
 	'Normal'			=>'正常',
 	'Spam'				=>'含垃圾信息',
