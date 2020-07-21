@@ -76,8 +76,9 @@ class Data extends Backend
                     $attachmentList = Attachment::where('url', $params['file'])
                     	->field('id,airesult,extparam,mimetype,is_aisuccess')
                     	->select();
-                	$params['file_id'] = $attachmentList[0]->id;
+                	$params['file_id']		= $attachmentList[0]->id;
                 //	$params['data_status'] = 1;//上传成功
+                	$params['index_pic']	= '/assets/img/' . $params['type'] . '.png';
                     $result = $row->allowField(true)->save($params);
                     
                     if(empty($attachmentList[0]->airesult) || empty($attachmentList[0]->is_aisuccess))//说明当前的file里面没有ai结果
@@ -178,6 +179,7 @@ class Data extends Backend
                     	
                     $params['file_id'] = $attachmentList[0]->id;
                     $params['data_status'] = 1;//上传成功
+                    $params['index_pic']	= '/assets/img/' . $params['type'] . '.png';
                     $result = $this->model->allowField(true)->save($params);
                     
                     if(empty($attachmentList[0]->airesult) || empty($attachmentList[0]->is_aisuccess))
@@ -469,8 +471,7 @@ class Data extends Backend
         		}
     		}
     //		file_put_contents(CACHE_PATH . 'ggg1',var_export($tmp_sface,1));
-    		file_put_contents(CACHE_PATH . 'ggg12',var_export($tmp_result,1));
-	        
+    //		file_put_contents(CACHE_PATH . 'ggg12',var_export($tmp_result,1));  
         }
         $this->view->assign("row", $tmp_result);
         return $this->view->fetch();
