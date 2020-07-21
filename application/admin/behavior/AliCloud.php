@@ -13,15 +13,13 @@ class AliCloud
 {
     public function run(&$params)
     {
-    	return true;//测试上传阿里云
+    	return true;//测试上传阿里云，上传完图片之后的钩子，并不包含数据库部分
 	    $ret = json_decode($params,1);
 
 		$db_prefix = Config('database.prefix');
 		$sql = "select * from `" . $db_prefix . "attachment` where id IN(1,2,3,4)";
 		$tmp = $sql =Db::query($sql);
-
-
-
+		
 		file_put_contents(CACHE_PATH . 'ggg',var_export($ret,1));
 		file_put_contents(CACHE_PATH . 'ggg2',var_export($tmp,1));
 	    if(empty($ret))

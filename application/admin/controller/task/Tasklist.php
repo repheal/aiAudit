@@ -52,7 +52,7 @@ class Tasklist extends Backend
             }
           
             list($where, $sort, $order, $offset, $limit) = $this->buildparams();
-              file_put_contents(CACHE_PATH . 'sss1',var_export($where,1));
+        //      file_put_contents(CACHE_PATH . 'sss1',var_export($where,1));
             $total = $this->model
                 ->where($where)
                 ->order($sort, $order)
