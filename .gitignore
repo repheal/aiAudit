@@ -1,5 +1,6 @@
 /nbproject/
 /thinkphp/
+/application/config.php
 /vendor/
 /runtime/*
 /addons/*
