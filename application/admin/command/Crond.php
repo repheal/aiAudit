@@ -533,6 +533,10 @@ class Crond extends Command
 	     {
 		     return true;
 	     }
+	     /**
+	     rate 定义阈值，超出阈值的，ai_sface标记，同时不会对图片进行本地化操作；
+	     */
+	     $default_rate = 80.00;
 	     
 	     if($tmp_data)
 	     {
@@ -552,6 +556,12 @@ class Crond extends Command
 			     		{
 				     		$tmp_sql_data['main'] = 1;
 			     		}
+			     		$tmp_sql_data['rate']		= $vv['rate'];
+			     		$tmp_sql_data['is_used']	= 0;
+			     		if($vv['rate'] >= $default_rate)
+			     		{
+				     		$tmp_sql_data['is_used']= 1;
+			     		}
 			     		$tmp_sql_data['aid'] 		= $aid;
 			     		$tmp_sql_data['skey'] 		= md5($vv['url']);
 			     		$tmp_sql_data['surl'] 		= $vv['url'];
@@ -568,13 +578,13 @@ class Crond extends Command
 		     if($sql_params)
 		     {
 				    $db_prefix = Config('database.prefix');
-		    		$sql = "replace into `" . $db_prefix . "attachment_ai_sface`(aid,skey,surl,scene,label,ext,main,createtime,updatetime) values";
+		    		$sql = "replace into `" . $db_prefix . "attachment_ai_sface`(aid,skey,surl,scene,label,ext,rate,is_used,main,createtime,updatetime) values";
 		    		$space = $sql_suffix = '';
 		    		//$tmp = $sql =Db::query($sql);
 		    		$aids = [];
 			    	foreach($sql_params as $k => $v)
 			    	{
-				    	$sql_suffix .= $space . "(" .  $v['aid'] . ",'" . $v['skey'] . "','" . $v['surl'] . "','" . $v['scene'] . "','" . $v['label'] . "','" . $v['ext'] . "','" . $v['main'] . "'," . $v['createtime'] . "," . $v['updatetime'] . ")";
+				    	$sql_suffix .= $space . "(" .  $v['aid'] . ",'" . $v['skey'] . "','" . $v['surl'] . "','" . $v['scene'] . "','" . $v['label'] . "','" . $v['ext'] . "','" . $v['rate'] . "','" . $v['is_used'] . "','" . $v['main'] . "'," . $v['createtime'] . "," . $v['updatetime'] . ")";
 				    	$space = ',';
 				    	$aids[] = $v['aid'];
 			    	}
@@ -586,6 +596,9 @@ class Crond extends Command
      private function attachment_ai_sface_local()
      {
 		$attachmentAiSfaceList = AttachmentAiSface::where("url=''")->select();
+		/*
+		图片本地化的规则为is_used=1 并且url=''
+		*/
 		$list = array();
 		if($attachmentAiSfaceList)
 		{
@@ -654,6 +667,7 @@ class Crond extends Command
 		            'mimetype'    => $img_info['mime'],
 		            'url'         => $uploadDir . $fileName,
 		            'uploadtime'  => time(),
+		            'airesult'	  => json_encode(array()),
 		            'storage'     => 'local',
 		            'sha1'        => $sha1,
 		            'extparam'    => json_encode($extparam),

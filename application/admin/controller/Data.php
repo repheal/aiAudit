@@ -433,7 +433,7 @@ class Data extends Backend
 		        
 	        }
 	        
-	        $attachmentAiSfaceList	= AttachmentAiSface::where('aid=' . $sface_id.' and main=1')->select();
+	        $attachmentAiSfaceList	= AttachmentAiSface::where('aid=' . $sface_id.' and main=1 and is_used=1')->select();
             $tmp_sface = array();
             if($attachmentAiSfaceList)//针对视频
     		{
