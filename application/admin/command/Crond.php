@@ -204,7 +204,7 @@ class Crond extends Command
     
     private function aliyun_green_async()//异步执行，未提交的素材
     {
-	    $attachmentList = Attachment::where("need_ai=1 and airesult='' and is_aisuccess=0")->select();
+	    $attachmentList = Attachment::where("need_ai=1 and airesult='[]' and is_aisuccess=0")->select();
 		//print_r($attachmentList);
 		if($attachmentList)
 		{
@@ -236,11 +236,11 @@ class Crond extends Command
 //		      	if(in_array($tmp_type[0],['image','audio','video','text']))
 				if(in_array($tmp_type[0],['image','text']) && !$update_status['ai_status'] != 4)//同步会直接有结果
 				{
-					Attachment::update(['id' => $value->id, 'airesult' => $tmp_ret ? json_encode($tmp_ret) : '','is_aisuccess'=>1]);
+					Attachment::update(['id' => $value->id, 'airesult' => $tmp_ret ? json_encode($tmp_ret) : json_encode(array()),'is_aisuccess'=>1]);
 				}
 				else
 				{
-					Attachment::update(['id' => $value->id, 'airesult' => $tmp_ret ? json_encode($tmp_ret) : '']);
+					Attachment::update(['id' => $value->id, 'airesult' => $tmp_ret ? json_encode($tmp_ret) : json_encode(array())]);
 				}
 
 		      	
@@ -265,9 +265,9 @@ class Crond extends Command
 
 			    foreach($attachmentList as $key => $value)
 			    {
-					if($value->airesult)
+			    	$tmp_result = json_decode($value->airesult,1);
+					if($tmp_result)
 					{
-						$tmp_result = json_decode($value->airesult,1);
 						if(!isset($tmp_result['data'][0]['results']))//不存在，异步未回调
 						{
 							$tmp_type = explode('/',$value->mimetype);

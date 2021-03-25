@@ -80,8 +80,8 @@ class Data extends Backend
                 //	$params['data_status'] = 1;//上传成功
                 	$params['index_pic']	= '/assets/img/' . $params['type'] . '.png';
                     $result = $row->allowField(true)->save($params);
-                    
-                    if(empty($attachmentList[0]->airesult) || empty($attachmentList[0]->is_aisuccess))//说明当前的file里面没有ai结果
+                    $tmp_airesult = json_decode($attachmentList[0]->airesult,1);
+                    if(empty($tmp_airesult) || empty($attachmentList[0]->is_aisuccess))//说明当前的file里面没有ai结果
                     {
 	                    $tmp_type = explode('/',$attachmentList[0]->mimetype);
 	                    $tmp_ret = $this->aliyun_green_create($params['file'],$tmp_type[0]);
@@ -110,11 +110,11 @@ class Data extends Backend
 	                   
 	                   	if(in_array($tmp_type[0],['image','text']) && $update_status['ai_status'] !=4)//同步会直接有结果
 						{
-							Attachment::update(['id' => $attachmentList[0]->id, 'airesult' => $tmp_ret ? json_encode($tmp_ret) : '','is_aisuccess'=>1]);
+							Attachment::update(['id' => $attachmentList[0]->id, 'airesult' => $tmp_ret ? json_encode($tmp_ret) : json_encode(array()),'is_aisuccess'=>1]);
 						}
 						else
 						{
-							Attachment::update(['id' => $attachmentList[0]->id, 'airesult' => $tmp_ret ? json_encode($tmp_ret) : '']);
+							Attachment::update(['id' => $attachmentList[0]->id, 'airesult' => $tmp_ret ? json_encode($tmp_ret) : json_encode(array())]);
 						}
                     }
                     else//有ai结果
@@ -181,8 +181,8 @@ class Data extends Backend
                     $params['data_status'] = 1;//上传成功
                     $params['index_pic']	= '/assets/img/' . $params['type'] . '.png';
                     $result = $this->model->allowField(true)->save($params);
-                    
-                    if(empty($attachmentList[0]->airesult) || empty($attachmentList[0]->is_aisuccess))
+                    $tmp_airesult = json_decode($attachmentList[0]->airesult,1);
+                    if(empty($tmp_airesult) || empty($attachmentList[0]->is_aisuccess))
                     {
                     	$tmp_type = explode('/',$attachmentList[0]->mimetype);
 	                    $tmp_ret = $this->aliyun_green_create($params['file'],$tmp_type[0]);
@@ -209,11 +209,11 @@ class Data extends Backend
 	                    $this->model->where('id', $this->model->id)->update($update_status);
 	                    if(in_array($tmp_type[0],['image','text']) && $update_status['ai_status'] !=4)//同步会直接有结果
 						{
-							Attachment::update(['id' => $attachmentList[0]->id, 'airesult' => $tmp_ret ? json_encode($tmp_ret) : '','is_aisuccess'=>1]);
+							Attachment::update(['id' => $attachmentList[0]->id, 'airesult' => $tmp_ret ? json_encode($tmp_ret) : json_encode(array()),'is_aisuccess'=>1]);
 						}
 						else
 						{
-							Attachment::update(['id' => $attachmentList[0]->id, 'airesult' => $tmp_ret ? json_encode($tmp_ret) : '']);
+							Attachment::update(['id' => $attachmentList[0]->id, 'airesult' => $tmp_ret ? json_encode($tmp_ret) : json_encode(array()) ]);
 						}
                     } 
                 } catch (ValidateException $e) {
@@ -402,10 +402,9 @@ class Data extends Backend
        		$attachmentList 		= Attachment::where('id', $sface_id)
                     	->field('id,airesult,extparam,mimetype,is_aisuccess,url')
                     	->select();
-                    	
-	        if($attachmentList && $attachmentList[0]->airesult)//针对图片
+            $tmp_airesult = json_decode($attachmentList[0]->airesult,1);      	
+	        if($attachmentList && !empty($tmp_airesult))//针对图片
 	        {
-	        	$tmp_airesult = json_decode($attachmentList[0]->airesult,1);
 	        	$tmp_airesult = $tmp_airesult['data'][0]['results'];
 	        	foreach($tmp_airesult as $k => $v)
 	        	{
