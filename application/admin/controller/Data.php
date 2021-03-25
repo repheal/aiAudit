@@ -215,7 +215,14 @@ class Data extends Backend
 						{
 							Attachment::update(['id' => $attachmentList[0]->id, 'airesult' => $tmp_ret ? json_encode($tmp_ret) : json_encode(array()) ]);
 						}
-                    } 
+                    }
+                    else
+                    {
+	                     $params['data_status'] = 5;
+	                     $params['ai_status'] = 0;//文件已存在，并且有ai结果
+	                     $result = $this->model->allowField(true)->save($params);
+                    }
+                    
                 } catch (ValidateException $e) {
                     
                     $this->error($e->getMessage());
